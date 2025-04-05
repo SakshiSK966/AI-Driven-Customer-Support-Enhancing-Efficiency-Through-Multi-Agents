@@ -1,7 +1,6 @@
 import streamlit as st
 import openai
 import speech_recognition as sr
-import tempfile
 
 # Replace with your actual OpenAI API Key
 openai.api_key = "YOUR_API_KEY"
@@ -36,29 +35,29 @@ st.markdown("""
 st.title("💬 Smart AI Support Assistant")
 st.subheader("Talk or type to get instant customer support answers!")
 
-# Voice Input Section
-st.markdown("#### 🎙️ Upload your voice (WAV format):")
-audio_file = st.file_uploader("Upload a .wav file", type=["wav"])
-
 user_query = ""
 
-if audio_file:
+# 🎙️ Voice Input Section
+st.markdown("#### 🎙️ Press 'Start Listening' and speak your question:")
+
+if st.button("Start Listening"):
     recognizer = sr.Recognizer()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
-        tmp_file.write(audio_file.read())
-        tmp_file_path = tmp_file.name
+    mic = sr.Microphone()
 
-    with sr.AudioFile(tmp_file_path) as source:
-        audio = recognizer.record(source)
-        try:
-            user_query = recognizer.recognize_google(audio)
-            st.success(f"Recognized Speech: {user_query}")
-        except sr.UnknownValueError:
-            st.error("Sorry, I could not understand the audio.")
-        except sr.RequestError:
-            st.error("Could not request results; check your internet connection.")
+    with mic as source:
+        st.info("Listening... Please speak now.")
+        recognizer.adjust_for_ambient_noise(source)
+        audio = recognizer.listen(source)
 
-# Text Input Section
+    try:
+        user_query = recognizer.recognize_google(audio)
+        st.success(f"Recognized Speech: {user_query}")
+    except sr.UnknownValueError:
+        st.error("Sorry, I could not understand the audio.")
+    except sr.RequestError:
+        st.error("Could not request results; check your internet connection.")
+
+# 💬 Text Input Section
 st.markdown("#### 💬 Or type your question below:")
 typed_input = st.text_input("Type your question here:")
 if typed_input:
@@ -78,3 +77,4 @@ if st.button("Get Answer") and user_query:
 
 st.markdown("---")
 st.markdown("<p style='text-align:center;'>🚀 Created by <b>Sakshi Kotur</b> | 2025</p>", unsafe_allow_html=True)
+
