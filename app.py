@@ -1,13 +1,12 @@
 import streamlit as st
 import openai
-import speech_recognition as sr
+from streamlit.components.v1 import html
 
 # Replace with your actual OpenAI API Key
 openai.api_key = "YOUR_API_KEY"
 
 st.set_page_config(page_title="Smart AI Support Assistant", page_icon="💬", layout="centered")
 
-# Styling
 st.markdown("""
     <style>
         .main {
@@ -35,31 +34,51 @@ st.markdown("""
 st.title("💬 Smart AI Support Assistant")
 st.subheader("Talk or type to get instant customer support answers!")
 
+st.markdown("#### 🎙️ Speak below:")
+
+# JavaScript for browser mic input
+html_code = """
+<script>
+const streamlitSpeech = window.streamlitSpeech || {};
+streamlitSpeech.recognize = function() {
+    var recognition = new webkitSpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = function(event) {
+        const text = event.results[0][0].transcript;
+        window.parent.postMessage({ type: 'streamlit:speech', text: text }, '*');
+    };
+
+    recognition.onerror = function(event) {
+        window.parent.postMessage({ type: 'streamlit:speech', text: "ERROR" }, '*');
+    };
+
+    recognition.start();
+};
+</script>
+<button onclick="streamlitSpeech.recognize()">🎤 Start Speaking</button>
+"""
+
+html(html_code, height=100)
+
+# Listen for result
+speech_text = st.experimental_get_query_params().get("voice", [None])[0]
+if "_streamlit_messages" in st.session_state:
+    for m in st.session_state["_streamlit_messages"]:
+        if m["type"] == "streamlit:speech":
+            speech_text = m["text"]
+
 user_query = ""
+if speech_text and speech_text != "ERROR":
+    st.success(f"You said: {speech_text}")
+    user_query = speech_text
+elif speech_text == "ERROR":
+    st.error("Could not understand. Try again.")
 
-# 🎙️ Voice Input Section
-st.markdown("#### 🎙️ Press 'Start Listening' and speak your question:")
-
-if st.button("Start Listening"):
-    recognizer = sr.Recognizer()
-    mic = sr.Microphone()
-
-    with mic as source:
-        st.info("Listening... Please speak now.")
-        recognizer.adjust_for_ambient_noise(source)
-        audio = recognizer.listen(source)
-
-    try:
-        user_query = recognizer.recognize_google(audio)
-        st.success(f"Recognized Speech: {user_query}")
-    except sr.UnknownValueError:
-        st.error("Sorry, I could not understand the audio.")
-    except sr.RequestError:
-        st.error("Could not request results; check your internet connection.")
-
-# 💬 Text Input Section
-st.markdown("#### 💬 Or type your question below:")
-typed_input = st.text_input("Type your question here:")
+# Manual text input
+typed_input = st.text_input("💬 Or type your question:")
 if typed_input:
     user_query = typed_input
 
@@ -77,4 +96,3 @@ if st.button("Get Answer") and user_query:
 
 st.markdown("---")
 st.markdown("<p style='text-align:center;'>🚀 Created by <b>Sakshi Kotur</b> | 2025</p>", unsafe_allow_html=True)
-
